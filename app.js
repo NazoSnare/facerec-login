@@ -7,23 +7,46 @@ navigator.webkitGetUserMedia({video: true},
   }
 );
 
-/* This function will call the facial recognition software
-   and return details about the results.
- */
-function recognizePhoto(photo) {
-
-}
-
-function testwrite(name, data) {
+function writeImage(name, data) {
     var fs = require("fs");
 
-    fs.writeFile(path, data, function(err){
+    //strip the data:image/jpeg;base64, off of the front of the image
+    var match = data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/),
+      response = {};
+    var dataBuffer = new Buffer(match[2], 'base64');
+
+    fs.writeFile(name, dataBuffer, function(err){
         if (err) {
             return console.log(err);
         }
 
-        console.log("Successfully wrote " + filename);
+        console.log("Beginning face prediction");
+        getPrediction();
+
     })
+}
+
+function getPrediction() {
+  var spawn = require('child_process').spawn;
+  var file = "/home/bpsizemore/facial-recognition/predict_face.py"
+  var args = ["/usr/share/OpenCV/haarcascades/haarcascade_frontalface_default.xml",
+    "/home/bpsizemore/facerec-login/image.png"]
+
+  var result = '';
+  var child = spawn(file, args);
+
+  child.stdout.on('data', (data) => {
+    result = `${data}`;
+    console.log(result);
+    //Navigate to new Electron page and prompt for accuracy in the predition.
+  });
+
+}
+
+function uintToString(uintArray) {
+    var encodedString = String.fromCharCode.apply(null, uintArray),
+        decodedString = decodeURIComponent(escape(encodedString));
+    return decodedString;
 }
 
 function getImage() {
@@ -49,7 +72,8 @@ function getImage() {
         context.drawImage(video, 0, 0, width, height);
 
         img.src = canvas.toDataURL('image/png');
-        document.body.appendChild(img);
+        writeImage("/home/bpsizemore/facerec-login/image.png", img.src);
+
     }
 
     // use MediaDevices API
